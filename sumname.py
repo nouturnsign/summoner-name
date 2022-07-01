@@ -5,6 +5,7 @@ import queue as _queue
 import random as _random
 import threading as _threading
 from io import TextIOWrapper as _TextIOWrapper
+from typing import Union as _Union
 
 import bs4 as _bs4
 import cloudscraper as _cloudscraper
@@ -35,7 +36,7 @@ class UnrandomSummoner:
     for _ in range(n):
       yield next(self._generator)
 
-  def generate_to_file_next(self, path: str | _TextIOWrapper, n: int, verbose: bool=True):
+  def generate_to_file_next(self, path: _Union[str, _TextIOWrapper], n: int, verbose: bool=True):
 
     generator = _itertools.islice(self._generator, n)
     if verbose:
@@ -62,7 +63,7 @@ class UnrandomSummoner:
     return resp.json()
 
   @classmethod
-  async def _add_participants_head(cls, region: str, summoner: str, remaining: _queue.Queue | _queue.LifoQueue):
+  async def _add_participants_head(cls, region: str, summoner: str, remaining: _Union[_queue.Queue, _queue.LifoQueue]):
     
     data = await cls.safely_wait_for_data(region, summoner)
 
@@ -81,7 +82,7 @@ class UnrandomSummoner:
       remaining.put(participant)
 
   @classmethod
-  def _loop_in_thread(cls, loop: str, region: str, summoner: str, remaining: _queue.Queue | _queue.LifoQueue):
+  def _loop_in_thread(cls, loop: str, region: str, summoner: str, remaining: _Union[_queue.Queue, _queue.LifoQueue]):
 
     _asyncio.set_event_loop(loop)
     loop.run_until_complete(cls._add_participants_head(region, summoner, remaining))
@@ -107,7 +108,7 @@ class UnrandomSummoner:
         t.start()
 
   @classmethod
-  def generate_to_file_from(cls, path: str | _TextIOWrapper, region: str, summoner: str, maximum: int, verbose: bool=True):
+  def generate_to_file_from(cls, path: _Union[str, _TextIOWrapper], region: str, summoner: str, maximum: int, verbose: bool=True):
 
     generator = cls.generate_from(region, summoner, maximum)
     if verbose:
