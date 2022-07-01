@@ -2,11 +2,15 @@ import asyncio as _asyncio
 import itertools as _itertools
 import json as _json
 import queue as _queue
+import random as _random
 import threading as _threading
 from io import TextIOWrapper as _TextIOWrapper
 
 import bs4 as _bs4
 import cloudscraper as _cloudscraper
+import keras as _keras
+import numpy as _np
+import requests as _requests
 from tqdm import tqdm as _tqdm
 
 class UnrandomSummoner:
@@ -115,3 +119,51 @@ class UnrandomSummoner:
     with path as f:
       for summoner in generator:
         f.write(summoner + '\n')
+        
+class FakeSummoner:
+
+  path = 'https://github.com/nouturnsign/summoner-name/raw/master/models'
+  name = 'lowelo_1e4_model'
+
+  T = 121349
+  M = 13
+  TEXT = _requests.get(f"{path}/{name}.txt").content.decode('utf-8').replace('\n', '\n ')
+  CHARS = sorted(set(TEXT))
+  CHAR_INDICES = {}
+  for i, char in enumerate(CHARS):
+    CHAR_INDICES[char] = i
+
+  weights_path = _keras.utils.data_utils.get_file(name, f"{path}/{name}.h5")
+  model = _keras.models.Sequential()
+  model.add(_keras.layers.LSTM(128, input_shape=(M, len(CHARS))))
+  model.add(_keras.layers.Dense(len(CHARS), activation='softmax'))
+  model.load_weights(weights_path)
+  model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+
+  @staticmethod
+  def sample(preds: _np.ndarray, temperature: float=1.0):
+
+    preds = _np.asarray(preds).astype('float64')
+    preds = _np.log(preds) / temperature
+    exp_preds = _np.exp(preds)
+    preds = exp_preds / _np.sum(exp_preds)
+    probas = _np.random.multinomial(1, preds, 1)
+    return _np.argmax(probas)
+
+  def generate_next(self, n: int):
+
+    start_index = _random.randint(0, len(self.TEXT) - self.M - 1)
+    generated_text = self.TEXT[start_index: start_index + self.M]
+
+    for i in range(n):
+      sampled = _np.zeros((1, self.M, len(self.CHARS)))
+      for t, char in enumerate(generated_text):
+          sampled[0, t, self.CHAR_INDICES[char]] = 1.
+
+      preds = self.model.predict(sampled, verbose=0)[0]
+      next_index = self.sample(preds)
+      next_char = self.CHARS[next_index]
+
+      generated_text += next_char
+      yield next_char.replace('\n', '')
+      generated_text = generated_text[1:]
