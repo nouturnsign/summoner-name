@@ -1,0 +1,6 @@
+beautifulsoup4==4.11.1
+cloudscraper==1.2.60
+keras==2.8.0
+numpy==1.21.6
+requests==2.23.0
+tqdm==4.64.0
