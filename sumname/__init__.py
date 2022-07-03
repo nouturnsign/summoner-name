@@ -122,24 +122,25 @@ class UnrandomSummoner:
         f.write(summoner + '\n')
         
 class FakeSummoner:
+  
+  def __init__(self):
 
-  path = 'https://github.com/nouturnsign/summoner-name/raw/master/models'
-  name = 'lowelo_1e4_model'
+    path = 'https://github.com/nouturnsign/summoner-name/raw/master/models'
+    name = 'lowelo_1e4_model'
+    
+    self.M = 13
+    self.TEXT = _requests.get(f"{path}/{name}.txt").content.decode('utf-8').replace('\n', '\n ')
+    self.CHARS = sorted(set(TEXT))
+    self.CHAR_INDICES = {}
+    for i, char in enumerate(CHARS):
+      self.CHAR_INDICES[char] = i
 
-  T = 121349
-  M = 13
-  TEXT = _requests.get(f"{path}/{name}.txt").content.decode('utf-8').replace('\n', '\n ')
-  CHARS = sorted(set(TEXT))
-  CHAR_INDICES = {}
-  for i, char in enumerate(CHARS):
-    CHAR_INDICES[char] = i
-
-  weights_path = _keras.utils.data_utils.get_file(name, f"{path}/{name}.h5")
-  model = _keras.models.Sequential()
-  model.add(_keras.layers.LSTM(128, input_shape=(M, len(CHARS))))
-  model.add(_keras.layers.Dense(len(CHARS), activation='softmax'))
-  model.load_weights(weights_path)
-  model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+    weights_path = _keras.utils.data_utils.get_file(name, f"{path}/{name}.h5")
+    self.model = _keras.models.Sequential()
+    self.model.add(_keras.layers.LSTM(128, input_shape=(M, len(CHARS))))
+    self.model.add(_keras.layers.Dense(len(CHARS), activation='softmax'))
+    self.model.load_weights(weights_path)
+    self.model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
   @staticmethod
   def sample(preds: _np.ndarray, temperature: float=1.0):
